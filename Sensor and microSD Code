@@ -1,0 +1,214 @@
+// Author: demetrid@sonoma.edu (Contact Nansong Wu from Sonoma State University if author is unresponsive)
+// Sources: https://learn.sparkfun.com/tutorials/vernier-shield-hookup-guide
+// https://docs.arduino.cc/tutorials/yun-rev2/yun-datalogger
+// https://forum.arduino.cc/t/salinity-sensor-arduino-uno/257706
+// This code uses an Arduino Yun and a Vernier Shield to read values from Vernier temperature and salinity sensors. It then writes those values to a microSD card with the date and time
+// from the Arduino's internal clock, (NOT RTC).
+// Salinity sensor goes to Analog 1 on the shield
+// Temperature sensor goes to Analog 2 on the shield
+// Last date modified: 6/4/23
+// Arduino IDE 2.1.0
+
+
+#include <FileIO.h>
+#include "VernierLib.h"
+
+
+void setup() {
+
+
+  // Initialize the Bridge and the Serial
+
+
+  Bridge.begin();
+
+
+  Serial.begin(9600);
+
+
+  FileSystem.begin();
+
+
+  //while (!SerialUSB); // wait for Serial port to connect.
+
+
+  //SerialUSB.println("Filesystem datalogger\n");
+}
+
+
+void loop() {
+
+
+  // make a string that start with a timestamp for assembling the data to log:
+
+
+  float ppt = 0;
+  float refvoltage = 1.1;
+  int samples = 20;
+  int aRead = 0;
+  double tempvoltage = 0;
+  String dataString;
+
+
+ // SALINITY SENSOR CODE START
+
+
+  for (int i = 0; i < samples ; i++)
+  {
+   aRead += analogRead(0); //grab voltage value from pin 0, for salinity sensor
+  }
+  float voltage = 5.0 * aRead/ (1023 * samples);  // encode the value assuming 5V reference
+ 
+ ppt = 16.3 * voltage; // the slope value from the instruction manual, 16.3 ppt/V
+
+
+ // SALINITY SENSOR CODE FINISH
+
+
+ // TEMPERATURE SENSOR CODE START
+
+
+ tempvoltage = analogRead(2); // get voltage from pin 2, for temperature sensor
+
+
+// TEMPERATURE SENSOR CODE FINISH
+
+
+ dataString += getTimeStamp(); // function at bottom of the code
+
+
+// The next lines append the information into varible dataString. aRead is not appended because it likely is not needed on the SD card
+
+
+ dataString += String("\nTemperature:\n\t");
+ dataString += String(tempvoltage);
+ dataString += String("\nSalinity Raw:\n\t");
+ dataString += String(aRead);
+ dataString += String("\nppt:\n\t");
+ dataString += String(ppt);
+ 
+ // print pH value on serial monitor
+ Serial.print("Calculated ppt: \n\t");
+ Serial.println(ppt, 3); // 1 = one decimal, 2 = two decimals (default),etc   // removed the /10
+ Serial.println();
+ delay(500);
+
+
+ 
+
+
+ 
+
+
+ 
+
+
+  // read three sensors and append to the string:
+
+
+
+
+  // open the file. note that only one file can be open at a time,
+
+
+  // so you have to close this one before opening another.
+
+
+  // The FileSystem card is mounted at the following "/mnt/FileSystema1"
+
+
+File dataFile = FileSystem.open("/mnt/sd/datalog2.txt", FILE_APPEND);
+SerialUSB.println(dataString);
+
+
+  // if the file is available, write to it:
+
+
+if (dataFile) {
+
+
+    dataFile.println(dataString);
+
+
+    dataFile.close();
+
+
+    // print to the serial port too:
+
+
+    SerialUSB.println(dataString);
+  }
+
+
+  // if the file isn't open, pop up an error:
+
+
+ else {
+
+
+    SerialUSB.println("error opening datalog.txt");
+
+
+}
+
+
+delay(1500);
+
+
+}
+// This function return a string with the time stamp
+
+
+String getTimeStamp() {
+
+
+  String result;
+
+
+  Process time;
+
+
+  // date is a command line utility to get the date and the time
+
+
+  // in different formats depending on the additional parameter
+
+
+  time.begin("date");
+
+
+  time.addParameter("+%D-%T");  // parameters: D for the complete date mm/dd/yy
+
+
+  //             T for the time hh:mm:ss
+
+
+  time.run();  // run the command
+
+
+  // read the output of the command
+
+
+  while (time.available() > 0) {
+
+
+    char c = time.read();
+
+
+    if (c != '\n') {
+
+
+      result += c;
+
+
+    }
+
+
+  }
+
+
+  return result;
+}
+
+
+
