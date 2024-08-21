@@ -1,0 +1,11 @@
+1 Code uses INTERNAL for reference voltage, maybe switch to DEFAULT
+2 Temperature sensor read in both analog ports but salinity sensor did not read in either
+
+Salinity sensor in Analog 1
+
+1.5 inch submersion for salinity sensor
+
+To do:
+Beakers for better submersion
+Scale
+
